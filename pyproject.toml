@@ -1,0 +1,31 @@
+[build-system]
+requires = ["uv-build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[project]
+name = "mqt-nox"
+version = "0.1.0"
+description = "Common Nox session functions for the Munich Quantum Toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["nox>=2026.10.20"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.14"]
+
+[tool.uv.build-backend]
+module-name = "mqt.nox"
+source-include = ["docs/**", "tests/**"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["error"]

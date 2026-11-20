@@ -1,0 +1,146 @@
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# SPDX-License-Identifier: MIT
+
+"""Sessions for CMake-based Python packages with a build dependency group."""
+
+from __future__ import annotations
+
+import os
+import shutil
+from collections.abc import Sequence
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from . import _common
+
+if TYPE_CHECKING:
+    import nox
+
+
+def install(
+    session: nox.Session,
+    *,
+    package: str,
+    groups: Sequence[str] = (),
+    install_args: Sequence[str] = (),
+    minimum: bool = False,
+) -> None:
+    """Prepare build dependencies, then install the named package without isolation.
+
+    ``package`` is the distribution name, e.g. ``mqt-qmap``. The project must
+    declare its Python build dependencies in the ``build`` group. Additional
+    ``install_args`` are passed to both uv calls. With ``minimum=True``, use
+    uv pip install instead of uv sync to resolve without using the lockfile.
+    """
+    for tool in ("cmake", "ninja"):
+        if shutil.which(tool) is None:
+            session.install(tool)
+    env = _common.environment(session)
+    if (
+        session.parallel
+        and "CMAKE_BUILD_PARALLEL_LEVEL" not in session.env
+        and "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ
+    ):
+        env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
+    lock_args = () if {"--locked", "--frozen"}.intersection(install_args) else ("--locked",)
+    pip_install = ("pip", "install", "--python", session.virtualenv.location, "--upgrade", "--resolution=lowest-direct")
+    session.run(
+        "uv",
+        *(pip_install if minimum else ("sync", *lock_args, "--inexact")),
+        "--group" if minimum else "--only-group",
+        "build",
+        *(arg for group in groups for arg in ("--group" if minimum else "--only-group", group)),
+        *install_args,
+        env=env,
+    )
+    session.run(
+        "uv",
+        *(pip_install if minimum else ("sync", *lock_args, "--inexact", "--no-dev")),
+        "--no-build-isolation-package",
+        package,
+        "--config-settings-package",
+        f"{package}:build-dir={Path(session.virtualenv.location).resolve() / 'build'}",
+        *(arg for group in ("build", *groups) for arg in ("--group", group) if minimum),
+        *(("--editable", ".") if minimum else ()),
+        *install_args,
+        env=env,
+    )
+
+
+def tests(
+    session: nox.Session,
+    *,
+    package: str,
+    install_args: Sequence[str] = (),
+    pytest_args: Sequence[str] = (),
+    extra_deps: Sequence[str] = (),
+) -> None:
+    """Build the package and run pytest with optional dependency overrides.
+
+    ``install_args`` go to uv sync; ``pytest_args`` precede session.posargs.
+    ``extra_deps`` are installed after synchronization, e.g. an upstream SDK.
+    The test group must include pytest-cov for the shared coverage configuration.
+    """
+    install(session, package=package, groups=("test",), install_args=install_args)
+    _common.pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
+
+
+def minimums(
+    session: nox.Session,
+    *,
+    package: str,
+    install_args: Sequence[str] = (),
+    pytest_args: Sequence[str] = (),
+) -> None:
+    """Test lowest direct dependencies without reading or changing uv.lock.
+
+    ``install_args`` are passed to uv pip install.
+    """
+    install(session, package=package, groups=("test",), install_args=install_args, minimum=True)
+    _common.pytest(session, pytest_args=("-Wdefault", *pytest_args), extra_deps=())
+    session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
+
+
+def docs(
+    session: nox.Session,
+    *,
+    package: str,
+    install_args: Sequence[str] = (),
+    sphinx_args: Sequence[str] = (),
+) -> None:
+    """Build the package and run Sphinx; any Doxygen setup remains in the caller."""
+    install(session, package=package, groups=("docs",), install_args=install_args)
+    _common.sphinx(session, sphinx_args=sphinx_args)
+
+
+def stubs(
+    session: nox.Session,
+    *,
+    package: str,
+    modules: Sequence[str],
+    output_dir: str | Path,
+    stubgen_args: Sequence[str] = (),
+) -> None:
+    """Build a nanobind package, generate its stubs, and run the MQT stub hooks.
+
+    ``modules`` contains import names, e.g. ``mqt.qmap.sc``. ``output_dir`` is
+    relative to the consuming repository. Extra arguments go to nanobind.stubgen.
+    """
+    if not modules:
+        session.error("At least one nanobind module is required")
+    install(session, package=package)
+    output_dir = Path(output_dir)
+    session.run(
+        "python",
+        "-m",
+        "nanobind.stubgen",
+        "--recursive",
+        "--include-private",
+        "--output-dir",
+        output_dir,
+        *(arg for module in modules for arg in ("--module", module)),
+        *stubgen_args,
+        *session.posargs,
+    )
+    _common.format_stubs(session, sorted(output_dir.rglob("*.pyi")))
