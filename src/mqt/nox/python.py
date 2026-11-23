@@ -22,14 +22,14 @@ if TYPE_CHECKING:
 
 def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = ()) -> None:
     """Install the project and selected groups from the lockfile."""
-    lock_args = () if {"--locked", "--frozen"}.intersection(install_args) else ("--locked",)
+    lock_args = [] if {"--locked", "--frozen"}.intersection(install_args) else ["--locked"]
     session.run(
         "uv",
         "sync",
         *lock_args,
         "--inexact",
         "--no-dev",
-        *(arg for group in groups for arg in ("--group", group)),
+        *(arg for group in groups for arg in ["--group", group]),
         *install_args,
         env=common.get_session_env(session),
     )
@@ -48,8 +48,18 @@ def tests(
     ``extra_deps`` are installed after synchronization, e.g. an upstream SDK.
     The test group must include pytest-cov for the shared coverage configuration.
     """
-    install(session, groups=("test",), install_args=install_args)
+    install(session, groups=["test"], install_args=install_args)
     common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
+
+
+def qiskit(
+    session: nox.Session,
+    *,
+    install_args: Sequence[str] = (),
+    pytest_args: Sequence[str] = (),
+) -> None:
+    """Test against Qiskit's main branch after installing the locked baseline."""
+    tests(session, install_args=install_args, pytest_args=pytest_args, extra_deps=[common.QISKIT_UPSTREAM])
 
 
 def minimums(
@@ -77,7 +87,7 @@ def minimums(
         *install_args,
         env=common.get_session_env(session),
     )
-    common.run_pytest(session, pytest_args=("-Wdefault", *pytest_args))
+    common.run_pytest(session, pytest_args=["-Wdefault", *pytest_args])
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 
 
@@ -88,5 +98,5 @@ def docs(
     sphinx_args: Sequence[str] = (),
 ) -> None:
     """Install the docs group and build or serve Sphinx documentation."""
-    install(session, groups=("docs",), install_args=install_args)
+    install(session, groups=["docs"], install_args=install_args)
     common.run_sphinx(session, sphinx_args=sphinx_args)

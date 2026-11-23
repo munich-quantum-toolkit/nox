@@ -57,7 +57,7 @@ def install(
     ``install_args`` are passed to both uv sync calls.
     """
     env = prepare_build_env(session)
-    lock_args = () if {"--locked", "--frozen"}.intersection(install_args) else ("--locked",)
+    lock_args = [] if {"--locked", "--frozen"}.intersection(install_args) else ["--locked"]
     session.run(
         "uv",
         "sync",
@@ -65,7 +65,7 @@ def install(
         "--inexact",
         "--only-group",
         "build",
-        *(arg for group in groups for arg in ("--only-group", group)),
+        *(arg for group in groups for arg in ["--only-group", group]),
         *install_args,
         env=env,
     )
@@ -98,8 +98,25 @@ def tests(
     ``extra_deps`` are installed after synchronization, e.g. an upstream SDK.
     The test group must include pytest-cov for the shared coverage configuration.
     """
-    install(session, package=package, groups=("test",), install_args=install_args)
+    install(session, package=package, groups=["test"], install_args=install_args)
     common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
+
+
+def qiskit(
+    session: nox.Session,
+    *,
+    package: str,
+    install_args: Sequence[str] = (),
+    pytest_args: Sequence[str] = (),
+) -> None:
+    """Build the package and test against Qiskit's main branch."""
+    tests(
+        session,
+        package=package,
+        install_args=install_args,
+        pytest_args=pytest_args,
+        extra_deps=[common.QISKIT_UPSTREAM],
+    )
 
 
 def minimums(
@@ -114,7 +131,7 @@ def minimums(
     ``install_args`` are passed to uv pip install.
     """
     env = prepare_build_env(session)
-    install_command = (
+    install_command = [
         "uv",
         "pip",
         "install",
@@ -126,7 +143,7 @@ def minimums(
         "build",
         "--group",
         "test",
-    )
+    ]
     session.run(*install_command, *install_args, env=env)
     session.run(
         *install_command,
@@ -139,7 +156,7 @@ def minimums(
         *install_args,
         env=env,
     )
-    common.run_pytest(session, pytest_args=("-Wdefault", *pytest_args))
+    common.run_pytest(session, pytest_args=["-Wdefault", *pytest_args])
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 
 
@@ -151,7 +168,7 @@ def docs(
     sphinx_args: Sequence[str] = (),
 ) -> None:
     """Build the package and run Sphinx; any Doxygen setup remains in the caller."""
-    install(session, package=package, groups=("docs",), install_args=install_args)
+    install(session, package=package, groups=["docs"], install_args=install_args)
     common.run_sphinx(session, sphinx_args=sphinx_args)
 
 
@@ -180,7 +197,7 @@ def stubs(
         "--include-private",
         "--output-dir",
         output_dir,
-        *(arg for module in modules for arg in ("--module", module)),
+        *(arg for module in modules for arg in ["--module", module]),
         *stubgen_args,
         *session.posargs,
     )

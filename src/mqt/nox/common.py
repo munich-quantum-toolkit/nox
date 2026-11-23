@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     import nox
 
 
+QISKIT_UPSTREAM = "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"
+
+
 def lint(session: nox.Session) -> None:
     """Run all prek hooks, forwarding the session arguments."""
     if shutil.which("prek") is None:
@@ -38,7 +41,11 @@ def get_session_env(session: nox.Session) -> dict[str, str]:
 
 
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:
-    """Apply dependency overrides after synchronization, then run pytest directly."""
+    """Apply dependency overrides after synchronization, then run pytest directly.
+
+    ``pytest_args`` contains pytest command-line arguments, including test paths.
+    These precede session.posargs.
+    """
     if extra_deps:
         # Sync can restore locked versions even when Nox runs with --no-install.
         session.run(
@@ -57,7 +64,7 @@ def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_d
         directory = Path(session.virtualenv.location).resolve()
         env["COVERAGE_FILE"] = str(directory / ".coverage")
         env["PYTEST_XDIST_AUTO_NUM_WORKERS"] = "0"
-        args.extend(("-o", f"cache_dir={directory / 'pytest_cache'}"))
+        args.extend(["-o", f"cache_dir={directory / 'pytest_cache'}"])
         # The shared CI workflow passes the same XML filename to every session.
         args = [
             f"{arg.removesuffix('.xml')}-{directory.name}.xml"
@@ -100,6 +107,6 @@ def format_stubs(session: nox.Session, files: Sequence[Path]) -> None:
         return
     if shutil.which("prek") is None:
         session.install("prek")
-    for hook in ("license-tools", "ruff-check", "ruff-format"):
+    for hook in ["license-tools", "ruff-check", "ruff-format"]:
         session.run("prek", "run", hook, "--files", *files, external=True, success_codes=[0, 1])
     session.run("prek", "run", "ruff-check", "--files", *files, external=True)

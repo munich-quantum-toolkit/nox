@@ -49,15 +49,21 @@ example uses the planned initial version; this package has not been published
 yet. See [local installation](#try-the-package-before-publication) to try the
 package before publication.
 
+The project's development dependencies only need `mqt-nox`; it already depends
+on Nox. Nox also fails on missing interpreters by default when the `CI`
+environment variable is set, so no additional configuration is needed.
+
 ## Available functions
 
 | Function                                                       | Purpose                                                                          |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `common.lint(session)`                                         | Run all prek hooks, forwarding session arguments.                                |
 | `python.tests(session)`                                        | Install the project and `test` group, then run pytest.                           |
+| `python.qiskit(session)`                                       | Run tests against Qiskit's main branch.                                          |
 | `python.minimums(session)`                                     | Run tests with the lowest direct dependency versions.                            |
 | `python.docs(session)`                                         | Install the `docs` group and build or serve Sphinx docs.                         |
 | `cpp.tests(session, package=...)`                              | Prepare the `build` and `test` groups, build without isolation, then run pytest. |
+| `cpp.qiskit(session, package=...)`                             | Build the native package and test against Qiskit's main branch.                  |
 | `cpp.minimums(session, package=...)`                           | Run the CMake test setup with the lowest direct dependency versions.             |
 | `cpp.docs(session, package=...)`                               | Prepare the native package and `docs` group, then run Sphinx.                    |
 | `cpp.stubs(session, package=..., modules=..., output_dir=...)` | Build a nanobind package, generate stubs, and format them.                       |
@@ -91,18 +97,19 @@ overriding the project's scikit-build-core build directory.
 
 ## Customize a session
 
-Pass pytest arguments separately from uv installation arguments:
+Sequence arguments accept lists or tuples. Use `pytest_args` for pytest
+command-line arguments, including test paths. For a session with additional
+dependency groups, prepare the environment before running pytest:
 
 ```python
+from mqt.nox import common
+
+
 @nox.session(python="3.14", reuse_venv=True)
 def evaluation(session: nox.Session) -> None:
     """Run the photonic evaluation tests."""
-    cpp.tests(
-        session,
-        package="mqt-qmap",
-        install_args=("--group", "evaluation"),
-        pytest_args=("eval/ph/tests",),
-    )
+    cpp.install(session, package="mqt-qmap", groups=["test", "evaluation"])
+    common.run_pytest(session, pytest_args=["eval/ph/tests"])
 ```
 
 Session arguments after `--` are forwarded to pytest. Repository-specific setup,
@@ -114,26 +121,28 @@ if "--cov" in session.posargs:
 python.tests(session)
 ```
 
-Use `extra_deps` to test an upstream dependency after synchronizing the locked
-baseline. For example, keep Qiskit's session in the consuming repository:
+Use `python.qiskit` or `cpp.qiskit` to test Qiskit's main branch after
+synchronizing the locked baseline. Keep the session definition in the consuming
+repository:
 
 ```python
 @nox.session(python="3.14", reuse_venv=True, venv_backend="uv")
 def qiskit(session: nox.Session) -> None:
     """Test against Qiskit's main branch."""
-    python.tests(
+    python.qiskit(
         session,
-        install_args=("--locked",),
-        extra_deps=("qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git",),
         # MQT Core warns when Qiskit is newer than its latest tested release.
-        pytest_args=("-Wdefault:Qiskit:mqt.core.UntestedVersionWarning",),
+        pytest_args=["-Wdefault:Qiskit:mqt.core.UntestedVersionWarning"],
     )
 ```
 
-Native projects use `cpp.tests` and pass their distribution name, such as
+Native projects use `cpp.qiskit` and pass their distribution name, such as
 `package="mqt-ddsim"`. Add the warning filter only where MQT Core exposes
 `UntestedVersionWarning` and emits the Qiskit advisory. The filter applies only
 to this session and warning; other warnings retain their configured treatment.
+
+Both helpers install `qiskit[qasm3-import]` from Git. To override other
+dependencies, pass `extra_deps` to `python.tests` or `cpp.tests`.
 
 Overrides are installed into the Nox environment after project synchronization,
 including with `--no-install`. The helper prints `uv pip freeze`, including Git
@@ -157,7 +166,7 @@ ordinary test and documentation sessions pass them to `uv sync`.
 For documentation, `uvx nox --non-interactive -s docs` builds HTML and
 `uvx nox -s docs -- -b linkcheck` checks links. Interactive HTML builds use
 sphinx-autobuild. Pass additional fixed Sphinx flags through `sphinx_args`. Use
-`install_args=("--frozen",)` if a session intentionally needs frozen
+`install_args=["--frozen"]` if a session intentionally needs frozen
 synchronization.
 
 Custom documentation generation remains ordinary local code. Such sessions can
