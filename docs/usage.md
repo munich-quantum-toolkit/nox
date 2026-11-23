@@ -5,11 +5,55 @@ decorators, Python versions, default sessions, and environment settings in the
 repository's `noxfile.py`. Importing `mqt.nox` does not register sessions or
 change global Nox options.
 
+## Getting Started
+
+Declare `mqt-nox` alongside `nox` in the inline dependencies of `noxfile.py`,
+then call a shared function from a regular Nox session. For a CMake-based Python
+package:
+
+```python
+# /// script
+# dependencies = ["nox>=2026.10.20", "mqt-nox==0.1.0"]
+# ///
+
+import nox
+from mqt.nox import cpp
+
+nox.options.default_venv_backend = "uv"
+
+
+@nox.session(python=["3.11", "3.12", "3.13", "3.14"], reuse_venv=True, allow_parallel=True)
+def tests(session: nox.Session) -> None:
+    """Run the test suite."""
+    cpp.tests(session, package="mqt-qmap")
+
+
+if __name__ == "__main__":
+    nox.main()
+```
+
+For a Python-only project, use `from mqt.nox import python` and
+`python.tests(session)`. Run sessions with the usual command:
+
+```console
+uvx nox -s tests
+```
+
+Use `uvx nox -j auto -s tests` to run the Python matrix in parallel. Test and
+minimum-version sessions keep their environments, native builds, and coverage
+outputs separate. See the [parallel usage notes](#run-sessions-in-parallel)
+before enabling parallel execution for custom sessions.
+
+Nox installs missing inline dependencies before loading the sessions. The
+example uses the planned initial version; this package has not been published
+yet. See [local installation](#try-the-package-before-publication) to try the
+package before publication.
+
 ## Available functions
 
 | Function                                                       | Purpose                                                                          |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `lint(session)`                                                | Run all prek hooks, forwarding session arguments.                                |
+| `common.lint(session)`                                         | Run all prek hooks, forwarding session arguments.                                |
 | `python.tests(session)`                                        | Install the project and `test` group, then run pytest.                           |
 | `python.minimums(session)`                                     | Run tests with the lowest direct dependency versions.                            |
 | `python.docs(session)`                                         | Install the `docs` group and build or serve Sphinx docs.                         |
@@ -19,8 +63,12 @@ change global Nox options.
 | `cpp.stubs(session, package=..., modules=..., output_dir=...)` | Build a nanobind package, generate stubs, and format them.                       |
 | `python.install(session, groups=...)`                          | Prepare a Python environment for a custom session.                               |
 | `cpp.install(session, package=..., groups=...)`                | Prepare a CMake environment for a custom session.                                |
-| `sphinx(session)`                                              | Build or serve docs in an already prepared environment.                          |
-| `format_stubs(session, files)`                                 | Apply the MQT stub hooks to explicitly selected files.                           |
+| `common.run_sphinx(session)`                                   | Build or serve docs in an already prepared environment.                          |
+| `common.format_stubs(session, files)`                          | Apply the MQT stub hooks to explicitly selected files.                           |
+
+Import the public modules with `from mqt.nox import common, cpp, python`. Custom
+sessions can call `common.run_pytest` after preparing their environment and use
+`common.get_session_env` to direct uv to the Nox environment.
 
 `package` is the distribution name, such as `mqt-qmap`. Stub `modules` are
 Python import names, such as `mqt.qmap.sc`. Paths are relative to the consuming
@@ -30,11 +78,11 @@ The `test` group must include pytest and pytest-cov. The `docs` group must
 include Sphinx and the project's documentation dependencies. CMake projects must
 declare their Python build dependencies in `build`; missing CMake and Ninja
 executables are installed into the session. The CMake helpers are not intended
-for Maturin projects such as NAViz.
+for Maturin projects.
 
 The helpers require a Nox virtual environment. Use the uv backend and
-`reuse_venv=True`, as in the README. Environment values set on `session.env`
-apply to the build, tests, and documentation commands.
+`reuse_venv=True`, as in the example above. Environment values set on
+`session.env` apply to the build, tests, and documentation commands.
 
 Ordinary installation uses `uv sync --locked`. Generate or update `uv.lock` with
 `uv lock` before running sessions. A stale lock fails without changing the file.
@@ -58,8 +106,7 @@ def evaluation(session: nox.Session) -> None:
 ```
 
 Session arguments after `--` are forwarded to pytest. Repository-specific setup,
-such as QECC's Numba coverage setting or QCEC's profile checks, stays before the
-helper call:
+such as environment settings for coverage, stays before the helper call:
 
 ```python
 if "--cov" in session.posargs:
@@ -83,10 +130,9 @@ def qiskit(session: nox.Session) -> None:
     )
 ```
 
-This example follows MQT Bench. Native projects use `cpp.tests` and pass their
-distribution name, such as `package="mqt-ddsim"`. Add the warning filter only
-where MQT Core exposes `UntestedVersionWarning` and emits the Qiskit advisory;
-older versions such as MQT Core 3.11 do not define it. The filter applies only
+Native projects use `cpp.tests` and pass their distribution name, such as
+`package="mqt-ddsim"`. Add the warning filter only where MQT Core exposes
+`UntestedVersionWarning` and emits the Qiskit advisory. The filter applies only
 to this session and warning; other warnings retain their configured treatment.
 
 Overrides are installed into the Nox environment after project synchronization,
@@ -114,10 +160,10 @@ sphinx-autobuild. Pass additional fixed Sphinx flags through `sphinx_args`. Use
 `install_args=("--frozen",)` if a session intentionally needs frozen
 synchronization.
 
-Custom Doxygen or MLIR generation remains ordinary local code. Such sessions can
-call `cpp.install`, perform their own generation, and then call `sphinx`. SCPD
-can retain its schema-owned stub selection and call `format_stubs` with only the
-files it owns.
+Custom documentation generation remains ordinary local code. Such sessions can
+call `cpp.install`, perform their own generation, and then call
+`common.run_sphinx`. Custom stub generation can use `common.format_stubs` to
+format the generated files.
 
 ## Run sessions in parallel
 
@@ -145,12 +191,10 @@ The CMake helpers support the same pattern. Under Nox's parallel scheduler:
 - CMake builds default to one build job per session. An explicit
   `CMAKE_BUILD_PARALLEL_LEVEL` in the environment or `session.env` takes
   precedence.
-- File coverage reports passed through `pytest_args` or session arguments get
-  the environment name appended, such as `coverage-tests-3-14.xml`. Both
-  `--cov-report=xml:coverage.xml` and `--cov-report xml:coverage.xml` work, as
-  do default paths such as `--cov-report=xml`. Use these arguments for file
-  reports; report options hidden in pytest's `addopts` cannot be rewritten by
-  the helper.
+- XML coverage reports use a separate filename per environment. Pass
+  `--cov-report=xml:coverage.xml`, as in the shared CI workflow, to produce
+  files such as `coverage-tests-3-14.xml`. For other report formats or argument
+  forms, supply distinct output paths in the consuming session.
 - pytest-xdist's `-n auto` and `-n logical` use no additional workers. An
   explicit worker count still takes precedence. Sequential Nox runs retain
   normal xdist behavior, and projects without xdist need no additional

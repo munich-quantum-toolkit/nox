@@ -37,71 +37,8 @@ ecosystem, which is being developed as part of the
 
 ## Getting Started
 
-Declare `mqt-nox` alongside `nox` in the inline dependencies of `noxfile.py`,
-then call a shared function from a regular Nox session. For a CMake-based Python
-package:
-
-```python
-# /// script
-# dependencies = ["nox>=2026.10.20", "mqt-nox==0.1.0"]
-# ///
-
-import nox
-from mqt.nox import cpp
-
-nox.options.default_venv_backend = "uv"
-
-
-@nox.session(python=["3.11", "3.12", "3.13", "3.14"], reuse_venv=True, allow_parallel=True)
-def tests(session: nox.Session) -> None:
-    """Run the test suite."""
-    cpp.tests(session, package="mqt-qmap")
-
-
-if __name__ == "__main__":
-    nox.main()
-```
-
-For a Python-only project, use `from mqt.nox import python` and
-`python.tests(session)`. Run sessions with the usual command:
-
-```console
-uvx nox -s tests
-```
-
-Use `uvx nox -j auto -s tests` to run the Python matrix in parallel. Test and
-minimum-version sessions keep their environments, native builds, and coverage
-outputs separate. See the
-[parallel usage notes](docs/usage.md#run-sessions-in-parallel) before enabling
-parallel execution for custom sessions.
-
-Nox installs missing inline dependencies before loading the sessions. The
-example uses the planned initial version; this package has not been published
-yet. See the [usage guide](docs/usage.md) for local installation, available
-functions, and customization examples.
-
-> [!WARNING]
-> When rolling this out, enable Renovate's
-> [PEP 723 manager](https://docs.renovatebot.com/modules/manager/pep723/) for
-> `noxfile.py` so it updates the pinned inline dependencies. The manager does
-> not match any files by default. Add
-> `"pep723": { "managerFilePatterns": ["/(^|/)noxfile\\.py$/"] }` to the
-> Renovate configuration. If `enabledManagers` is restricted, include `"pep723"`
-> there as well.
-
-## Development
-
-```console
-uv sync
-uv run pytest
-uv run ruff check .
-uv run ruff format --check .
-uv build
-```
-
-The integration tests run real Nox sessions with temporary Python and CMake
-projects. They require uv, a C++ compiler, CMake, and Ninja. The first run
-downloads the test projects' Python dependencies.
+See the [usage guide](docs/usage.md) for installation, available functions, and
+examples for Python-only and CMake-based projects.
 
 ---
 

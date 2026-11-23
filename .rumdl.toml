@@ -1,6 +1,11 @@
 [per-file-ignores]
-# The branded README includes HTML and starts with a license badge.
+# The PR template is not a Markdown document in that sense
+"**/pull_request_template.md" = ["MD013", "MD041"]
+# The README may include HTML and does not need to start with a top-level heading
 "README.md" = ["MD033", "MD041"]
+
+[per-file-flavor]
+"docs/**" = "myst"
 
 [MD013]
 line-length = 80

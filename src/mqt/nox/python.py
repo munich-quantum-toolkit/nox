@@ -1,45 +1,37 @@
-# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
-# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# Copyright (c) 2026 Chair for Design Automation, TUM
+# Copyright (c) 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
 # SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
 
 """Sessions for Python projects using uv dependency groups."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from . import _common
+from . import common
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import nox
 
 
-def install(
-    session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = (), minimum: bool = False
-) -> None:
-    """Install locked dependencies, or resolve minimum versions without using the lock."""
+def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = ()) -> None:
+    """Install the project and selected groups from the lockfile."""
     lock_args = () if {"--locked", "--frozen"}.intersection(install_args) else ("--locked",)
-    command = (
-        (
-            "pip",
-            "install",
-            "--python",
-            session.virtualenv.location,
-            "--upgrade",
-            "--resolution=lowest-direct",
-            "--editable",
-            ".",
-        )
-        if minimum
-        else ("sync", *lock_args, "--inexact", "--no-dev")
-    )
     session.run(
         "uv",
-        *command,
+        "sync",
+        *lock_args,
+        "--inexact",
+        "--no-dev",
         *(arg for group in groups for arg in ("--group", group)),
         *install_args,
-        env=_common.environment(session),
+        env=common.get_session_env(session),
     )
 
 
@@ -57,7 +49,7 @@ def tests(
     The test group must include pytest-cov for the shared coverage configuration.
     """
     install(session, groups=("test",), install_args=install_args)
-    _common.pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
+    common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
 
 
 def minimums(
@@ -70,8 +62,22 @@ def minimums(
 
     ``install_args`` are passed to uv pip install.
     """
-    install(session, groups=("test",), install_args=install_args, minimum=True)
-    _common.pytest(session, pytest_args=("-Wdefault", *pytest_args), extra_deps=())
+    session.run(
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        session.virtualenv.location,
+        "--upgrade",
+        "--resolution=lowest-direct",
+        "--group",
+        "test",
+        "--editable",
+        ".",
+        *install_args,
+        env=common.get_session_env(session),
+    )
+    common.run_pytest(session, pytest_args=("-Wdefault", *pytest_args))
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 
 
@@ -83,4 +89,4 @@ def docs(
 ) -> None:
     """Install the docs group and build or serve Sphinx documentation."""
     install(session, groups=("docs",), install_args=install_args)
-    _common.sphinx(session, sphinx_args=sphinx_args)
+    common.run_sphinx(session, sphinx_args=sphinx_args)

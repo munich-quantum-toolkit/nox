@@ -1,31 +1,106 @@
+# Copyright (c) 2026 Chair for Design Automation, TUM
+# Copyright (c) 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 [build-system]
-requires = ["uv-build>=0.13,<0.14"]
 build-backend = "uv_build"
+requires = [ "uv-build>=0.13,<0.14" ]
+
 
 [project]
 name = "mqt-nox"
 version = "0.1.0"
 description = "Common Nox session functions for the Munich Quantum Toolkit"
 readme = "README.md"
-requires-python = ">=3.11"
 license = "MIT"
-license-files = ["LICENSE"]
-dependencies = ["nox>=2026.10.20"]
+license-files = [ "LICENSE" ]
+requires-python = ">=3.11"
+classifiers = [
+  "Natural Language :: English",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Typing :: Typed",
+]
+dependencies = [ "nox>=2026.10.20" ]
+
+[[project.authors]]
+name = "Daniel Haag"
+email = "daniel.haag@tum.de"
+
+[project.urls]
+Homepage = "https://github.com/munich-quantum-toolkit/nox"
+Issues = "https://github.com/munich-quantum-toolkit/nox/issues"
+Discussions = "https://github.com/munich-quantum-toolkit/nox/discussions"
+
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.14"]
+dev = [ "prek>=0.4.5" ]
+
+
+[tool.uv]
+required-version = ">=0.13.4"
 
 [tool.uv.build-backend]
 module-name = "mqt.nox"
-source-include = ["docs/**", "tests/**"]
+source-include = [ "docs/**" ]
+
 
 [tool.ruff]
 line-length = 120
+preview = true
+fix = true
+unsafe-fixes = true
+show-fixes = true
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+# These modules define Nox session helpers, not pytest tests.
+"src/mqt/nox/{cpp,python}.py" = [ "PT028" ]
+
+[tool.ruff.lint.isort]
+known-first-party = [ "mqt.nox" ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+select = [ "ALL" ]
+ignore = [
+  "C90",     # <...> too complex
+  "COM812",  # Trailing commas are handled by the formatter
+  "CPY001",  # Missing copyright notice at top of file
+  "PLR09",   # Too many <...>
+  "PLR2004", # Magic value used in comparison
+  "S101",    # Use of assert detected
+  "S404",    # `subprocess` module is possibly insecure
+  "S603",    # `subprocess` call: check for execution of untrusted input
+  "S607",    # Starting a process with a partial executable path
+  "T20",     # print statement used
+  "TID252",  # Prefer absolute imports over relative imports from parent modules
+]
+future-annotations = true
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-ra"
-filterwarnings = ["error"]
+
+[tool.check-sdist]
+sdist-only = [ "pyproject.toml.orig" ]
+git-only = [ ".gitignore", ".license-tools-config.json", ".rumdl.toml", "uv.lock" ]
+
+
+[tool.pyproject-fmt]
+generate_python_version_classifiers = false
+table_format = "long"
+sub_table_spacing = "\n"
+separate_root_table = "\n\n"
+
+
+[tool.ty.terminal]
+# Error if ty emits any warning-level diagnostics.
+error-on-warning = true

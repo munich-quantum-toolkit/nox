@@ -1,6 +1,10 @@
-# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
-# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
+# Copyright (c) 2026 Chair for Design Automation, TUM
+# Copyright (c) 2026 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
 # SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
 
 """Sessions for CMake-based Python packages with a build dependency group."""
 
@@ -8,14 +12,35 @@ from __future__ import annotations
 
 import os
 import shutil
-from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from . import _common
+from . import common
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import nox
+
+
+def prepare_build_env(session: nox.Session) -> dict[str, str]:
+    """Ensure CMake and Ninja are available and limit concurrent build jobs.
+
+    Returns:
+        Environment variables for uv and the native build.
+    """
+    if shutil.which("cmake") is None:
+        session.install("cmake")
+    if shutil.which("ninja") is None:
+        session.install("ninja")
+    env = common.get_session_env(session)
+    if (
+        session.parallel
+        and "CMAKE_BUILD_PARALLEL_LEVEL" not in session.env
+        and "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ
+    ):
+        env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
+    return env
 
 
 def install(
@@ -24,45 +49,36 @@ def install(
     package: str,
     groups: Sequence[str] = (),
     install_args: Sequence[str] = (),
-    minimum: bool = False,
 ) -> None:
-    """Prepare build dependencies, then install the named package without isolation.
+    """Prepare locked build dependencies, then install the package without isolation.
 
     ``package`` is the distribution name, e.g. ``mqt-qmap``. The project must
     declare its Python build dependencies in the ``build`` group. Additional
-    ``install_args`` are passed to both uv calls. With ``minimum=True``, use
-    uv pip install instead of uv sync to resolve without using the lockfile.
+    ``install_args`` are passed to both uv sync calls.
     """
-    for tool in ("cmake", "ninja"):
-        if shutil.which(tool) is None:
-            session.install(tool)
-    env = _common.environment(session)
-    if (
-        session.parallel
-        and "CMAKE_BUILD_PARALLEL_LEVEL" not in session.env
-        and "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ
-    ):
-        env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
+    env = prepare_build_env(session)
     lock_args = () if {"--locked", "--frozen"}.intersection(install_args) else ("--locked",)
-    pip_install = ("pip", "install", "--python", session.virtualenv.location, "--upgrade", "--resolution=lowest-direct")
     session.run(
         "uv",
-        *(pip_install if minimum else ("sync", *lock_args, "--inexact")),
-        "--group" if minimum else "--only-group",
+        "sync",
+        *lock_args,
+        "--inexact",
+        "--only-group",
         "build",
-        *(arg for group in groups for arg in ("--group" if minimum else "--only-group", group)),
+        *(arg for group in groups for arg in ("--only-group", group)),
         *install_args,
         env=env,
     )
     session.run(
         "uv",
-        *(pip_install if minimum else ("sync", *lock_args, "--inexact", "--no-dev")),
+        "sync",
+        *lock_args,
+        "--inexact",
+        "--no-dev",
         "--no-build-isolation-package",
         package,
         "--config-settings-package",
         f"{package}:build-dir={Path(session.virtualenv.location).resolve() / 'build'}",
-        *(arg for group in ("build", *groups) for arg in ("--group", group) if minimum),
-        *(("--editable", ".") if minimum else ()),
         *install_args,
         env=env,
     )
@@ -83,7 +99,7 @@ def tests(
     The test group must include pytest-cov for the shared coverage configuration.
     """
     install(session, package=package, groups=("test",), install_args=install_args)
-    _common.pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
+    common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
 
 
 def minimums(
@@ -97,8 +113,33 @@ def minimums(
 
     ``install_args`` are passed to uv pip install.
     """
-    install(session, package=package, groups=("test",), install_args=install_args, minimum=True)
-    _common.pytest(session, pytest_args=("-Wdefault", *pytest_args), extra_deps=())
+    env = prepare_build_env(session)
+    install_command = (
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        session.virtualenv.location,
+        "--upgrade",
+        "--resolution=lowest-direct",
+        "--group",
+        "build",
+        "--group",
+        "test",
+    )
+    session.run(*install_command, *install_args, env=env)
+    session.run(
+        *install_command,
+        "--no-build-isolation-package",
+        package,
+        "--config-settings-package",
+        f"{package}:build-dir={Path(session.virtualenv.location).resolve() / 'build'}",
+        "--editable",
+        ".",
+        *install_args,
+        env=env,
+    )
+    common.run_pytest(session, pytest_args=("-Wdefault", *pytest_args))
     session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
 
 
@@ -111,7 +152,7 @@ def docs(
 ) -> None:
     """Build the package and run Sphinx; any Doxygen setup remains in the caller."""
     install(session, package=package, groups=("docs",), install_args=install_args)
-    _common.sphinx(session, sphinx_args=sphinx_args)
+    common.run_sphinx(session, sphinx_args=sphinx_args)
 
 
 def stubs(
@@ -143,4 +184,4 @@ def stubs(
         *stubgen_args,
         *session.posargs,
     )
-    _common.format_stubs(session, sorted(output_dir.rglob("*.pyi")))
+    common.format_stubs(session, sorted(output_dir.rglob("*.pyi")))
