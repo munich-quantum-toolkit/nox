@@ -10,21 +10,20 @@
 
 from __future__ import annotations
 
-import os
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import nox
 
 from . import common
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    import nox
-
 
 def prepare_build_env(session: nox.Session) -> dict[str, str]:
-    """Ensure CMake and Ninja are available and limit concurrent build jobs.
+    """Ensure CMake and Ninja are available.
 
     Returns:
         Environment variables for uv and the native build.
@@ -33,29 +32,23 @@ def prepare_build_env(session: nox.Session) -> dict[str, str]:
         session.install("cmake")
     if shutil.which("ninja") is None:
         session.install("ninja")
-    env = common.get_session_env(session)
-    if (
-        session.parallel
-        and "CMAKE_BUILD_PARALLEL_LEVEL" not in session.env
-        and "CMAKE_BUILD_PARALLEL_LEVEL" not in os.environ
-    ):
-        env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
-    return env
+    return common.get_session_env(session)
 
 
 def install(
     session: nox.Session,
     *,
-    package: str,
+    package: str | None = None,
     groups: Sequence[str] = (),
     install_args: Sequence[str] = (),
 ) -> None:
     """Prepare locked build dependencies, then install the package without isolation.
 
-    ``package`` is the distribution name, e.g. ``mqt-qmap``. The project must
-    declare its Python build dependencies in the ``build`` group. Additional
-    ``install_args`` are passed to both uv sync calls.
+    ``package`` defaults to ``project.name`` in the consuming pyproject.toml.
+    The project must declare its Python build dependencies in the ``build``
+    group. Additional ``install_args`` are passed to both uv sync calls.
     """
+    package = package or nox.project.load_toml()["project"]["name"]
     env = prepare_build_env(session)
     lock_args = [] if {"--locked", "--frozen"}.intersection(install_args) else ["--locked"]
     session.run(
@@ -87,7 +80,7 @@ def install(
 def tests(
     session: nox.Session,
     *,
-    package: str,
+    package: str | None = None,
     install_args: Sequence[str] = (),
     pytest_args: Sequence[str] = (),
     extra_deps: Sequence[str] = (),
@@ -105,7 +98,7 @@ def tests(
 def qiskit(
     session: nox.Session,
     *,
-    package: str,
+    package: str | None = None,
     install_args: Sequence[str] = (),
     pytest_args: Sequence[str] = (),
 ) -> None:
@@ -122,7 +115,7 @@ def qiskit(
 def minimums(
     session: nox.Session,
     *,
-    package: str,
+    package: str | None = None,
     install_args: Sequence[str] = (),
     pytest_args: Sequence[str] = (),
 ) -> None:
@@ -130,6 +123,7 @@ def minimums(
 
     ``install_args`` are passed to uv pip install.
     """
+    package = package or nox.project.load_toml()["project"]["name"]
     env = prepare_build_env(session)
     install_command = [
         "uv",
@@ -163,7 +157,7 @@ def minimums(
 def docs(
     session: nox.Session,
     *,
-    package: str,
+    package: str | None = None,
     install_args: Sequence[str] = (),
     sphinx_args: Sequence[str] = (),
 ) -> None:
@@ -175,20 +169,23 @@ def docs(
 def stubs(
     session: nox.Session,
     *,
-    package: str,
     modules: Sequence[str],
-    output_dir: str | Path,
+    package: str | None = None,
+    output_dir: str | Path | None = None,
     stubgen_args: Sequence[str] = (),
 ) -> None:
     """Build a nanobind package, generate its stubs, and run the MQT stub hooks.
 
-    ``modules`` contains import names, e.g. ``mqt.qmap.sc``. ``output_dir`` is
-    relative to the consuming repository. Extra arguments go to nanobind.stubgen.
+    ``modules`` contains Python import names, e.g. ``mqt.qmap.sc``. MQT
+    distribution names such as ``mqt-qmap`` determine the default output
+    directory, e.g. ``python/mqt/qmap``. Extra arguments go to nanobind.stubgen.
     """
     if not modules:
         session.error("At least one nanobind module is required")
+    package = package or nox.project.load_toml()["project"]["name"]
+    module_prefix = package.replace("-", ".")
     install(session, package=package)
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir) if output_dir is not None else Path("python", *module_prefix.split("."))
     session.run(
         "python",
         "-m",

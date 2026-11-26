@@ -63,7 +63,6 @@ def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_d
     if session.parallel:
         directory = Path(session.virtualenv.location).resolve()
         env["COVERAGE_FILE"] = str(directory / ".coverage")
-        env["PYTEST_XDIST_AUTO_NUM_WORKERS"] = "0"
         args.extend(["-o", f"cache_dir={directory / 'pytest_cache'}"])
         # The shared CI workflow passes the same XML filename to every session.
         args = [
