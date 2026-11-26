@@ -21,9 +21,6 @@ if TYPE_CHECKING:
     import nox
 
 
-QISKIT_UPSTREAM = "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"
-
-
 def lint(session: nox.Session) -> None:
     """Run all prek hooks, forwarding the session arguments."""
     if shutil.which("prek") is None:

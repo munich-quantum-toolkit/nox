@@ -40,12 +40,6 @@ ecosystem, which is being developed as part of the
 See the [usage guide](docs/usage.md) for installation, available functions, and
 examples for Python-only and CMake-based projects.
 
-> [!WARNING]
-> When rolling this out, configure Renovate's
-> [PEP 723 manager](https://docs.renovatebot.com/modules/manager/pep723/)
-> to match `noxfile.py` so it updates inline dependencies. The manager does not
-> match any files by default.
-
 ---
 
 ## Acknowledgements

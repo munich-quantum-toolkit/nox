@@ -15,8 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import nox
-
-from . import common
+from mqt.nox import common
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -108,7 +107,7 @@ def qiskit(
         package=package,
         install_args=install_args,
         pytest_args=pytest_args,
-        extra_deps=[common.QISKIT_UPSTREAM],
+        extra_deps=["qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"],
     )
 
 

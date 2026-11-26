@@ -8,6 +8,6 @@
 
 """Common session functions; session registration stays in the consuming noxfile."""
 
-from .common import format_stubs, lint, run_sphinx
+from mqt.nox.common import format_stubs, lint, run_sphinx
 
 __all__ = ["format_stubs", "lint", "run_sphinx"]

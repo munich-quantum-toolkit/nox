@@ -61,10 +61,6 @@ show-fixes = true
 preview = true
 docstring-code-format = true
 
-[tool.ruff.lint.per-file-ignores]
-# These modules define Nox session helpers, not pytest tests.
-"src/mqt/nox/{cpp,python}.py" = [ "PT028" ]
-
 [tool.ruff.lint.isort]
 known-first-party = [ "mqt.nox" ]
 
@@ -79,19 +75,24 @@ ignore = [
   "CPY001",  # Missing copyright notice at top of file
   "PLR09",   # Too many <...>
   "PLR2004", # Magic value used in comparison
+  "PT028",   # Nox session helpers have optional arguments
   "S101",    # Use of assert detected
   "S404",    # `subprocess` module is possibly insecure
   "S603",    # `subprocess` call: check for execution of untrusted input
   "S607",    # Starting a process with a partial executable path
   "T20",     # print statement used
-  "TID252",  # Prefer absolute imports over relative imports from parent modules
 ]
 future-annotations = true
 
 
 [tool.check-sdist]
 sdist-only = [ "pyproject.toml.orig" ]
-git-only = [ ".gitignore", ".license-tools-config.json", ".rumdl.toml", "uv.lock" ]
+git-only = [
+  ".gitignore",
+  ".license-tools-config.json",
+  ".rumdl.toml",
+  "uv.lock",
+]
 
 
 [tool.pyproject-fmt]
