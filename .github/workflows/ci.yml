@@ -18,8 +18,6 @@ jobs:
   change-detection:
     name: 🔍 Change
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
-    with:
-      additional-cd-files: '["src/**", "docs/**", "pyproject.toml", "uv.lock", "LICENSE", "README.md", ".github/workflows/ci.yml"]'
     permissions:
       pull-requests: read # Needed to list changed files
 
@@ -42,3 +40,24 @@ jobs:
     uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-build.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
     permissions:
       contents: read
+
+  # This job is used for branch protection.
+  required-checks-pass:
+    name: 🚦 Check
+    if: always()
+    needs: [change-detection, python-linter, packaging]
+    runs-on: ubuntu-slim
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: >-
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-python-linter)
+              && 'python-linter,' || ''
+            }}
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-cd)
+              && 'packaging' || ''
+            }}
+          jobs: ${{ toJSON(needs) }}
