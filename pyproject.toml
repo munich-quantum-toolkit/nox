@@ -24,7 +24,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Typing :: Typed",
 ]
 dependencies = [ "nox>=2026.10.20" ]
 
@@ -91,6 +90,8 @@ git-only = [
   ".gitignore",
   ".license-tools-config.json",
   ".rumdl.toml",
+  "CHANGELOG.md",
+  "UPGRADING.md",
   "uv.lock",
 ]
 

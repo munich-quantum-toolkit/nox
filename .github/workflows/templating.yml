@@ -31,10 +31,9 @@ jobs:
       - uses: munich-quantum-toolkit/templates@cf0390a674091c1a428c5c59b90d48c7a38dd51c # v1.6.0
         with:
           token: ${{ steps.create-token.outputs.token }}
-          name: Nox
+          name: Nox Sessions
           organization: ${{ github.repository_owner }}
           project-type: other
-          has-changelog-and-upgrade-guide: false
           repository: ${{ github.event.repository.name }}
           synchronize-contribution-guide: false
           synchronize-documentation-utilities: false
