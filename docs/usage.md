@@ -37,9 +37,9 @@ uvx nox -s tests -- -k some_test
 
 Keep `pyproject.toml` alongside `noxfile.py` and update `uv.lock` when
 dependencies change. Define a `test` dependency group containing pytest and
-pytest-cov, a `docs` group for Sphinx and documentation dependencies, and a
-`build` group for CMake projects. The CMake helpers read the package name from
-`project.name`.
+pytest-cov, a `docs` group containing Sphinx, sphinx-autobuild, and
+documentation dependencies, and a `build` group for CMake projects. The CMake
+helpers read the package name from `project.name`.
 
 ## Available helpers
 
@@ -56,17 +56,20 @@ for nanobind stubs. Pass full module names such as `mqt.qmap.sc`; the default
 output directory follows the MQT layout, e.g. `python/mqt/qmap`. Override it
 with `output_dir` if needed.
 
-The minimum-dependency helpers resolve independently of `uv.lock`. The Qiskit
-helpers install the upstream version after project synchronization so pytest
-uses that version. Documentation sessions serve HTML interactively; pass
+Installation uses `uv sync --locked`, which fails if `uv.lock` is out of date
+instead of updating it. The minimum-dependency helpers resolve independently of
+`uv.lock`. The Qiskit helpers install the upstream version after project
+synchronization so pytest uses that version. Documentation sessions use the
+locked dependencies for both builds and interactive HTML previews. Pass
 `--non-interactive` to build only, or `-- -b linkcheck` to check links.
 
 ## Customizing a session
 
 Use `pytest_args` for fixed pytest flags or test paths, `install_args` for uv
-options, and `sphinx_args` for Sphinx options. Arguments after `--` are
-forwarded to the session's command. Test helpers also accept `extra_deps` for
-dependency overrides installed after synchronization.
+options such as `--all-extras` or `--reinstall-package`, and `sphinx_args` for
+Sphinx options. Arguments after `--` are forwarded to the session's command.
+Test helpers also accept `extra_deps` for dependency overrides installed after
+synchronization.
 
 For additional dependency groups or custom setup, install first and then call a
 common helper:

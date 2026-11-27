@@ -22,11 +22,10 @@ if TYPE_CHECKING:
 
 def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = ()) -> None:
     """Install the project and selected groups from the lockfile."""
-    lock_args = [] if {"--locked", "--frozen"}.intersection(install_args) else ["--locked"]
     session.run(
         "uv",
         "sync",
-        *lock_args,
+        "--locked",
         "--inexact",
         "--no-dev",
         *(arg for group in groups for arg in ["--group", group]),

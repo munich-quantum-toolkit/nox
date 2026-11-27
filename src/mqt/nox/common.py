@@ -68,8 +68,6 @@ def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None
     parser.add_argument("-b", dest="builder", default="html", help="Build target (default: html)")
     args, posargs = parser.parse_known_args(session.posargs)
     serve = args.builder == "html" and session.interactive
-    if serve:
-        session.install("sphinx-autobuild")
     session.run(
         "sphinx-autobuild" if serve else "sphinx-build",
         "-n",

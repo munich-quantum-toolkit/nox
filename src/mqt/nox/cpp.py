@@ -49,11 +49,10 @@ def install(
     """
     package = package or nox.project.load_toml()["project"]["name"]
     env = prepare_build_env(session)
-    lock_args = [] if {"--locked", "--frozen"}.intersection(install_args) else ["--locked"]
     session.run(
         "uv",
         "sync",
-        *lock_args,
+        "--locked",
         "--inexact",
         "--only-group",
         "build",
@@ -64,7 +63,7 @@ def install(
     session.run(
         "uv",
         "sync",
-        *lock_args,
+        "--locked",
         "--inexact",
         "--no-dev",
         "--no-build-isolation-package",
