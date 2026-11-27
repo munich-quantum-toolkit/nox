@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sessions for Python projects using uv dependency groups."""
+"""Sessions for Python-only projects using uv dependency groups."""
 
 from __future__ import annotations
 
@@ -51,9 +51,8 @@ def tests(
 ) -> None:
     """Install the test group and run pytest with optional dependency overrides.
 
-    ``install_args`` go to uv sync; ``pytest_args`` precede session.posargs.
-    ``extra_deps`` are installed after synchronization, e.g. an upstream SDK.
-    The test group must include pytest-cov for the shared coverage configuration.
+    ``install_args`` go to uv sync; ``pytest_args`` precede session.posargs. ``extra_deps`` are installed after
+    synchronization, e.g. an upstream SDK. The test group must include pytest-cov for the shared coverage configuration.
     """
     install(session, groups=["test"], install_args=install_args)
     common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)

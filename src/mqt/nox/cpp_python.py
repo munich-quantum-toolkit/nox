@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sessions for C++-Python projects built with CMake."""
+"""Sessions for Python-C++ projects built with CMake."""
 
 from __future__ import annotations
 
@@ -47,9 +47,8 @@ def install(
 ) -> None:
     """Prepare locked build dependencies, then install the package without isolation.
 
-    ``package`` defaults to ``project.name`` in the consuming pyproject.toml.
-    The project must declare its Python build dependencies in the ``build``
-    group. Additional ``install_args`` are passed to both uv sync calls.
+    ``package`` defaults to ``project.name`` in the consuming pyproject.toml. The project must declare its Python build
+    dependencies in the ``build`` group. Additional ``install_args`` are passed to both uv sync calls.
     """
     package = package or nox.project.load_toml()["project"]["name"]
     prepare_build_env(session)
@@ -85,9 +84,8 @@ def tests(
 ) -> None:
     """Build the package and run pytest with optional dependency overrides.
 
-    ``install_args`` go to uv sync; ``pytest_args`` precede session.posargs.
-    ``extra_deps`` are installed after synchronization, e.g. an upstream SDK.
-    The test group must include pytest-cov for the shared coverage configuration.
+    ``install_args`` go to uv sync; ``pytest_args`` precede session.posargs. ``extra_deps`` are installed after
+    synchronization, e.g. an upstream SDK. The test group must include pytest-cov for the shared coverage configuration.
     """
     install(session, package=package, groups=["test"], install_args=install_args)
     common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
@@ -169,9 +167,8 @@ def stubs(
 ) -> None:
     """Build a nanobind package, generate its stubs, and run the MQT stub hooks.
 
-    ``modules`` contains Python import names, e.g. ``mqt.qmap.sc``. MQT
-    distribution names such as ``mqt-qmap`` determine the default output
-    directory, e.g. ``python/mqt/qmap``. Extra arguments go to nanobind.stubgen.
+    ``modules`` contains Python import names, e.g. ``mqt.qmap.sc``. MQT distribution names such as ``mqt-qmap``
+    determine the default output directory, e.g. ``python/mqt/qmap``. Extra arguments go to nanobind.stubgen.
     """
     if not modules:
         session.error("At least one nanobind module is required")

@@ -23,7 +23,7 @@ requires = [ "uv-build>=0.13,<0.14" ]
 [project]
 name = "mqt-nox"
 version = "0.1.0"
-description = "Reusable Nox Sessions for Python and C++-Python Projects"
+description = "Reusable Nox Sessions for Python and C++ Projects"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = [ "LICENSE" ]

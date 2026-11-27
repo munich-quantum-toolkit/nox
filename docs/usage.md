@@ -37,7 +37,7 @@ uvx nox -s tests -- -k some_test
 Keep `pyproject.toml` alongside `noxfile.py` and update `uv.lock` when
 dependencies change. Define a `test` dependency group containing pytest and
 pytest-cov, a `docs` group containing Sphinx and documentation dependencies, and
-a `build` group for C++-Python projects built with CMake. The C++-Python helpers
+a `build` group for Python-C++ projects built with CMake. The Python-C++ helpers
 read the package name from `project.name`.
 
 If you use repo-review, ignore `NOX102` in `[tool.repo-review.ignore]`. That
@@ -46,7 +46,7 @@ import.
 
 ## Available helpers
 
-| Task                 | Python-only project                     | C++-Python project                          |
+| Task                 | Python-only project                     | Python-C++ project                          |
 | -------------------- | --------------------------------------- | ------------------------------------------- |
 | Tests                | `python.tests(session)`                 | `cpp_python.tests(session)`                 |
 | Minimum dependencies | `python.minimums(session)`              | `cpp_python.minimums(session)`              |

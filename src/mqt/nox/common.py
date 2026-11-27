@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operations shared by the Python-only and C++-Python session functions."""
+"""Operations shared by the Python-only and Python-C++ session functions."""
 
 from __future__ import annotations
 
@@ -40,8 +40,7 @@ def lint(session: nox.Session) -> None:
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:
     """Apply dependency overrides after synchronization, then run pytest directly.
 
-    ``pytest_args`` contains pytest command-line arguments, including test paths.
-    These precede session.posargs.
+    ``pytest_args`` contains pytest command-line arguments, including test paths. These precede session.posargs.
     """
     if extra_deps:
         # Sync can restore locked versions even when Nox runs with --no-install.
@@ -53,8 +52,8 @@ def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_d
 def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None:
     """Build docs from an already prepared environment.
 
-    Accept ``-b <builder>`` in session arguments and forward the remaining
-    arguments to Sphinx. Serve HTML builds only in interactive sessions.
+    Accept ``-b <builder>`` in session arguments and forward the remaining arguments to Sphinx. Serve HTML builds only
+    in interactive sessions.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-b", dest="builder", default="html", help="Build target (default: html)")

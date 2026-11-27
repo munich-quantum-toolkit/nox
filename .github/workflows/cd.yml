@@ -74,7 +74,7 @@ jobs:
     with:
       version: ${{ needs.check-release.outputs.version }}
       has-upgrade-guide: true
-      release-name: mqt-nox ${{ needs.check-release.outputs.version }} Release
+      release-name: MQT Nox Sessions ${{ needs.check-release.outputs.version }} Release
 
   publish-pypi:
     name: 🚀 Publish to PyPI
