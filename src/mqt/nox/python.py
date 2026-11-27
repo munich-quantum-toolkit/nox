@@ -39,7 +39,6 @@ def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequen
         "--no-dev",
         *(arg for group in groups for arg in ["--group", group]),
         *install_args,
-        env=common.get_session_env(session),
     )
 
 
@@ -89,8 +88,6 @@ def minimums(
         "uv",
         "pip",
         "install",
-        "--python",
-        session.virtualenv.location,
         "--upgrade",
         "--resolution=lowest-direct",
         "--group",
@@ -98,10 +95,9 @@ def minimums(
         "--editable",
         ".",
         *install_args,
-        env=common.get_session_env(session),
     )
     common.run_pytest(session, pytest_args=["-Wdefault", *pytest_args])
-    session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
+    session.run("uv", "pip", "tree")
 
 
 def docs(

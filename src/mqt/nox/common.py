@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operations shared by the Python and CMake session functions."""
+"""Operations shared by the Python-only and C++-Python session functions."""
 
 from __future__ import annotations
 
@@ -37,15 +37,6 @@ def lint(session: nox.Session) -> None:
     session.run("prek", "run", "--all-files", *session.posargs, external=True)
 
 
-def get_session_env(session: nox.Session) -> dict[str, str]:
-    """Direct uv to the environment selected by Nox.
-
-    Returns:
-        Environment variables selecting the Nox virtual environment.
-    """
-    return {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:
     """Apply dependency overrides after synchronization, then run pytest directly.
 
@@ -54,17 +45,9 @@ def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_d
     """
     if extra_deps:
         # Sync can restore locked versions even when Nox runs with --no-install.
-        session.run(
-            "uv",
-            "pip",
-            "install",
-            "--python",
-            session.virtualenv.location,
-            *extra_deps,
-            env=get_session_env(session),
-        )
-        session.run("uv", "pip", "freeze", "--python", session.virtualenv.location, env=get_session_env(session))
-    session.run("pytest", *pytest_args, *session.posargs, "--cov-config=pyproject.toml", env=get_session_env(session))
+        session.run("uv", "pip", "install", *extra_deps)
+        session.run("uv", "pip", "freeze")
+    session.run("pytest", *pytest_args, *session.posargs, "--cov-config=pyproject.toml")
 
 
 def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None:
@@ -77,6 +60,8 @@ def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None
     parser.add_argument("-b", dest="builder", default="html", help="Build target (default: html)")
     args, posargs = parser.parse_known_args(session.posargs)
     serve = args.builder == "html" and session.interactive
+    if serve:
+        session.install("sphinx-autobuild")
     session.run(
         "sphinx-autobuild" if serve else "sphinx-build",
         "-n",
@@ -86,7 +71,6 @@ def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None
         f"docs/_build/{args.builder}",
         *sphinx_args,
         *posargs,
-        env=get_session_env(session),
     )
 
 

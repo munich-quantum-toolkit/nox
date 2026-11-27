@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sessions for CMake-based Python packages with a build dependency group."""
+"""Sessions for C++-Python projects built with CMake."""
 
 from __future__ import annotations
 
@@ -30,17 +30,12 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
-def prepare_build_env(session: nox.Session) -> dict[str, str]:
-    """Ensure CMake and Ninja are available.
-
-    Returns:
-        Environment variables for uv and the native build.
-    """
+def prepare_build_env(session: nox.Session) -> None:
+    """Ensure CMake and Ninja are available."""
     if shutil.which("cmake") is None:
         session.install("cmake")
     if shutil.which("ninja") is None:
         session.install("ninja")
-    return common.get_session_env(session)
 
 
 def install(
@@ -57,7 +52,7 @@ def install(
     group. Additional ``install_args`` are passed to both uv sync calls.
     """
     package = package or nox.project.load_toml()["project"]["name"]
-    env = prepare_build_env(session)
+    prepare_build_env(session)
     session.run(
         "uv",
         "sync",
@@ -67,7 +62,6 @@ def install(
         "build",
         *(arg for group in groups for arg in ["--only-group", group]),
         *install_args,
-        env=env,
     )
     session.run(
         "uv",
@@ -78,7 +72,6 @@ def install(
         "--no-build-isolation-package",
         package,
         *install_args,
-        env=env,
     )
 
 
@@ -129,13 +122,11 @@ def minimums(
     ``install_args`` are passed to uv pip install.
     """
     package = package or nox.project.load_toml()["project"]["name"]
-    env = prepare_build_env(session)
+    prepare_build_env(session)
     install_command = [
         "uv",
         "pip",
         "install",
-        "--python",
-        session.virtualenv.location,
         "--upgrade",
         "--resolution=lowest-direct",
         "--group",
@@ -143,7 +134,7 @@ def minimums(
         "--group",
         "test",
     ]
-    session.run(*install_command, *install_args, env=env)
+    session.run(*install_command, *install_args)
     session.run(
         *install_command,
         "--no-build-isolation-package",
@@ -151,10 +142,9 @@ def minimums(
         "--editable",
         ".",
         *install_args,
-        env=env,
     )
     common.run_pytest(session, pytest_args=["-Wdefault", *pytest_args])
-    session.run("uv", "pip", "tree", "--python", session.virtualenv.location)
+    session.run("uv", "pip", "tree")
 
 
 def docs(

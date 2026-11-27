@@ -12,7 +12,7 @@ releases may include breaking changes.
 
 ### Added
 
-- ✨ Add shared Nox session functions for Python-only and CMake-based projects
+- ✨ Add shared Nox session functions for Python-only and C++-Python projects
   ([#1]) ([**@denialhaag**])
 
 <!-- Version links -->
