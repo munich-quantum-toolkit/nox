@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import argparse
 import shutil
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from pathlib import Path
 
     import nox
 
@@ -55,20 +55,7 @@ def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_d
             env=get_session_env(session),
         )
         session.run("uv", "pip", "freeze", "--python", session.virtualenv.location, env=get_session_env(session))
-    args = [*pytest_args, *session.posargs]
-    env = get_session_env(session)
-    if session.parallel:
-        directory = Path(session.virtualenv.location).resolve()
-        env["COVERAGE_FILE"] = str(directory / ".coverage")
-        args.extend(["-o", f"cache_dir={directory / 'pytest_cache'}"])
-        # The shared CI workflow passes the same XML filename to every session.
-        args = [
-            f"{arg.removesuffix('.xml')}-{directory.name}.xml"
-            if arg.startswith("--cov-report=xml:") and arg.endswith(".xml")
-            else arg
-            for arg in args
-        ]
-    session.run("pytest", *args, "--cov-config=pyproject.toml", env=env)
+    session.run("pytest", *pytest_args, *session.posargs, "--cov-config=pyproject.toml", env=get_session_env(session))
 
 
 def run_sphinx(session: nox.Session, *, sphinx_args: Sequence[str] = ()) -> None:

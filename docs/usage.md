@@ -86,9 +86,5 @@ Repository-specific build steps and warning filters stay in the local session.
 Use `session.env` for environment settings. Maturin and other specialized build
 setups should keep their own installation code.
 
-Parallel execution is also a repository choice. The helpers preserve
-pytest-xdist and CMake worker settings. For parallel test sessions, they
-separate native builds, pytest caches, and coverage data. Use
-`--cov-report=xml:coverage.xml` for separate XML reports per session. Keep lint,
-documentation, and stub-generation sessions sequential because they modify
-shared files.
+Run Nox sessions sequentially. Configure pytest-xdist and CMake worker counts in
+the consuming repository.

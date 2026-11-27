@@ -69,8 +69,6 @@ def install(
         "--no-dev",
         "--no-build-isolation-package",
         package,
-        "--config-settings-package",
-        f"{package}:build-dir={Path(session.virtualenv.location).resolve() / 'build'}",
         *install_args,
         env=env,
     )
@@ -142,8 +140,6 @@ def minimums(
         *install_command,
         "--no-build-isolation-package",
         package,
-        "--config-settings-package",
-        f"{package}:build-dir={Path(session.virtualenv.location).resolve() / 'build'}",
         "--editable",
         ".",
         *install_args,
