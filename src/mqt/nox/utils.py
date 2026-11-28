@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Operations shared by the Python-only and Python-C++ session functions."""
+"""Reusable operations for custom Nox sessions."""
 
 from __future__ import annotations
 
@@ -23,18 +23,47 @@ import argparse
 import shutil
 from typing import TYPE_CHECKING
 
+import nox
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
-    import nox
+
+def prepare_build_env(session: nox.Session) -> None:
+    """Ensure CMake and Ninja are available."""
+    if shutil.which("cmake") is None:
+        session.install("cmake")
+    if shutil.which("ninja") is None:
+        session.install("ninja")
 
 
-def lint(session: nox.Session) -> None:
-    """Run all prek hooks, forwarding the session arguments."""
-    if shutil.which("prek") is None:
-        session.install("prek")
-    session.run("prek", "run", "--all-files", *session.posargs, external=True)
+def install(
+    session: nox.Session,
+    *,
+    build_isolation: bool = True,
+    groups: Sequence[str] = (),
+    install_args: Sequence[str] = (),
+) -> None:
+    """Install the project and selected groups from the lockfile.
+
+    With ``build_isolation=False``, install the ``build`` group and build the project in the session environment.
+    Read the package name from ``project.name`` in pyproject.toml. Additional ``install_args`` are passed to uv sync.
+    """
+    if not build_isolation:
+        package = nox.project.load_toml()["project"]["name"]
+        prepare_build_env(session)
+        groups = ["build", *groups]
+        install_args = ["--no-build-isolation-package", package, *install_args]
+    session.run(
+        "uv",
+        "sync",
+        "--locked",
+        "--inexact",
+        "--no-dev",
+        *(arg for group in groups for arg in ["--group", group]),
+        *install_args,
+    )
 
 
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:

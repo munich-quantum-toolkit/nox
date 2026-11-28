@@ -55,14 +55,13 @@ import.
 
 | Helper                     | Description                            |
 | -------------------------- | -------------------------------------- |
-| `common.lint(session)`     | Run all prek hooks                     |
+| `python.lint(session)`     | Run all prek hooks                     |
 | `python.tests(session)`    | Run tests                              |
 | `python.minimums(session)` | Run tests with minimum dependencies    |
 | `python.qiskit(session)`   | Run tests against Qiskit's main branch |
 | `python.docs(session)`     | Build or serve documentation           |
 
-The test and documentation helpers accept `build_isolation` and an optional
-`package` name to override `project.name` when disabling isolation.
+The test and documentation helpers accept `build_isolation`.
 
 Installation uses a single `uv sync --locked`, which fails if `uv.lock` is out
 of date instead of updating it. With build isolation disabled, uv installs the
@@ -91,18 +90,17 @@ Sphinx options. Arguments after `--` are forwarded to the session's command.
 `python.tests` also accepts `extra_deps` for dependency overrides installed
 after synchronization.
 
-For additional dependency groups or custom setup, install first and then call a
-common helper:
+Use `utils` to compose custom sessions with additional dependency groups:
 
 ```python
-from mqt.nox import common, python
+from mqt.nox import utils
 
 
 @nox.session(python="3.14", reuse_venv=True)
 def evaluation(session: nox.Session) -> None:
     """Run the evaluation tests."""
-    python.install(session, build_isolation=False, groups=["test", "evaluation"])
-    common.run_pytest(session, pytest_args=["eval/ph/tests"])
+    utils.install(session, build_isolation=False, groups=["test", "evaluation"])
+    utils.run_pytest(session, pytest_args=["eval/ph/tests"])
 ```
 
 Repository-specific build steps and warning filters stay in the local session.
