@@ -37,19 +37,6 @@ def lint(session: nox.Session) -> None:
     session.run("prek", "run", "--all-files", *session.posargs, external=True)
 
 
-def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = ()) -> None:
-    """Install the project and selected groups from the lockfile."""
-    session.run(
-        "uv",
-        "sync",
-        "--locked",
-        "--inexact",
-        "--no-dev",
-        *(arg for group in groups for arg in ["--group", group]),
-        *install_args,
-    )
-
-
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:
     """Apply dependency overrides after synchronization, then run pytest directly.
 
