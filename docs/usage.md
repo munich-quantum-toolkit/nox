@@ -59,13 +59,15 @@ Use `common.lint(session)` for linting and
 names such as `mqt.qmap.sc`; the default output directory follows the MQT
 layout, e.g. `python/mqt/qmap`. Override it with `output_dir` if needed.
 
-Installation uses `uv sync --locked`, which fails if `uv.lock` is out of date
-instead of updating it. The minimum-dependency helpers resolve independently of
-`uv.lock`. The Qiskit helpers install the upstream version after project
-synchronization so pytest uses that version. Documentation sessions install the
-locked docs dependencies and additionally install sphinx-autobuild for
-interactive HTML previews. The preview tool is not part of the project lockfile.
-Pass `--non-interactive` to build only, or `-- -b linkcheck` to check links.
+Installation uses a single `uv sync --locked`, which fails if `uv.lock` is out
+of date instead of updating it. For Python-C++ projects, uv installs the build
+dependencies before building the project in the same environment. The
+minimum-dependency helpers resolve independently of `uv.lock`. The Qiskit
+helpers install the upstream version after project synchronization so pytest
+uses that version. Documentation sessions install the locked docs dependencies
+and additionally install sphinx-autobuild for interactive HTML previews. The
+preview tool is not part of the project lockfile. Pass `--non-interactive` to
+build only, or `-- -b linkcheck` to check links.
 
 ## Customizing a session
 

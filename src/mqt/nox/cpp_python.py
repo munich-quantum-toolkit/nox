@@ -45,32 +45,17 @@ def install(
     groups: Sequence[str] = (),
     install_args: Sequence[str] = (),
 ) -> None:
-    """Prepare locked build dependencies, then install the package without isolation.
+    """Install the project and selected groups from the lockfile without build isolation.
 
     ``package`` defaults to ``project.name`` in the consuming pyproject.toml. The project must declare its Python build
-    dependencies in the ``build`` group. Additional ``install_args`` are passed to both uv sync calls.
+    dependencies in the ``build`` group. Additional ``install_args`` are passed to uv sync.
     """
     package = package or nox.project.load_toml()["project"]["name"]
     prepare_build_env(session)
-    session.run(
-        "uv",
-        "sync",
-        "--locked",
-        "--inexact",
-        "--only-group",
-        "build",
-        *(arg for group in groups for arg in ["--only-group", group]),
-        *install_args,
-    )
-    session.run(
-        "uv",
-        "sync",
-        "--locked",
-        "--inexact",
-        "--no-dev",
-        "--no-build-isolation-package",
-        package,
-        *install_args,
+    common.install(
+        session,
+        groups=["build", *groups],
+        install_args=["--no-build-isolation-package", package, *install_args],
     )
 
 

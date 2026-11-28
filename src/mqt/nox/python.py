@@ -22,24 +22,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from mqt.nox import common
+from mqt.nox.common import install
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     import nox
-
-
-def install(session: nox.Session, *, groups: Sequence[str], install_args: Sequence[str] = ()) -> None:
-    """Install the project and selected groups from the lockfile."""
-    session.run(
-        "uv",
-        "sync",
-        "--locked",
-        "--inexact",
-        "--no-dev",
-        *(arg for group in groups for arg in ["--group", group]),
-        *install_args,
-    )
 
 
 def tests(
