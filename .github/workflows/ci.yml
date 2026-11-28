@@ -1,0 +1,63 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  merge_group:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  change-detection:
+    name: 🔍 Change
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-change-detection.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
+    permissions:
+      pull-requests: read # Needed to list changed files
+
+  python-linter:
+    name: 🐍 Lint
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-python-linter)
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-linter.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
+    with:
+      enable-ty: true
+      enable-mypy: false
+      use-sccache-gha: false
+    permissions:
+      contents: read
+
+  packaging:
+    name: 🚀 CD
+    needs: change-detection
+    if: fromJSON(needs.change-detection.outputs.run-cd)
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging-build.yml@ffe0f2765a034310f50e3e17715e744daf9789b1 # v3.0.0
+    permissions:
+      contents: read
+
+  # This job is used for branch protection.
+  required-checks-pass:
+    name: 🚦 Check
+    if: always()
+    needs: [change-detection, python-linter, packaging]
+    runs-on: ubuntu-slim
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # v1.3.0
+        with:
+          allowed-skips: >-
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-python-linter)
+              && 'python-linter,' || ''
+            }}
+            ${{
+              !fromJSON(needs.change-detection.outputs.run-cd)
+              && 'packaging' || ''
+            }}
+          jobs: ${{ toJSON(needs) }}
