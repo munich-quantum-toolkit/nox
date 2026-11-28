@@ -34,12 +34,13 @@ uvx nox -s tests -- -k some_test
 ```
 
 Keep `pyproject.toml` alongside `noxfile.py` and update `uv.lock` when
-dependencies change. Define a `test` dependency group containing pytest and
-pytest-cov and a `docs` group containing Sphinx and documentation dependencies.
+dependencies change. Define a `test` dependency group containing `pytest` and
+`pytest-cov` and a `docs` group containing Sphinx and documentation
+dependencies.
 
 Build isolation is enabled by default, which suits Python-only projects. For
 Python-C++ projects that build against dependencies in the session environment,
-pass `build_isolation=False`, e.g.
+pass `build_isolation=False`, e.g.,
 `python.tests(session, build_isolation=False)`. This adds the `build` group and
 disables isolation for the project package, whose name is read from
 `project.name`. Define that group with the project's Python build dependencies.
@@ -52,38 +53,39 @@ import.
 
 ## Available helpers
 
-| Task                 | Helper                                  |
-| -------------------- | --------------------------------------- |
-| Tests                | `python.tests(session)`                 |
-| Minimum dependencies | `python.minimums(session)`              |
-| Upstream Qiskit      | `python.qiskit(session)`                |
-| Documentation        | `python.docs(session)`                  |
-| Custom installation  | `python.install(session, groups=[...])` |
+| Helper                     | Description                            |
+| -------------------------- | -------------------------------------- |
+| `common.lint(session)`     | Run all prek hooks                     |
+| `python.tests(session)`    | Run tests                              |
+| `python.minimums(session)` | Run tests with minimum dependencies    |
+| `python.qiskit(session)`   | Run tests against Qiskit's main branch |
+| `python.docs(session)`     | Build or serve documentation           |
 
-All helpers in this table accept `build_isolation` and an optional `package`
-name to override `project.name` when disabling isolation.
-
-Use `common.lint(session)` for linting and
-`python.stubs(session, modules=[...])` for nanobind stubs. Stub generation
-always installs the `build` group, which must include nanobind, and builds
-without isolation. Pass full module names such as `mqt.qmap.sc`; the default
-output directory follows the MQT layout, e.g. `python/mqt/qmap`. Override it
-with `output_dir` if needed.
+The test and documentation helpers accept `build_isolation` and an optional
+`package` name to override `project.name` when disabling isolation.
 
 Installation uses a single `uv sync --locked`, which fails if `uv.lock` is out
 of date instead of updating it. With build isolation disabled, uv installs the
 build dependencies before building the project in the same environment. The
 minimum-dependency helper resolves independently of `uv.lock` and installs the
 build and test groups first when isolation is disabled. The Qiskit helper
-installs the upstream version after project synchronization so pytest uses that
-version. Documentation sessions install the locked docs dependencies and
-additionally install sphinx-autobuild for interactive HTML previews. The preview
-tool is not part of the project lockfile. Pass `--non-interactive` to build
-only, or `-- -b linkcheck` to check links.
+installs the upstream version after project synchronization so `pytest` uses
+that version.
+
+Documentation sessions install the locked docs dependencies and additionally
+install sphinx-autobuild for interactive HTML previews. The preview tool is not
+part of the project lockfile. Pass `--non-interactive` to build only, or
+`-- -b linkcheck` to check links.
+
+Use `python.stubs(session, modules=[...])` to generate nanobind stubs. Stub
+generation installs the `build` group, which must include nanobind, and builds
+without isolation. Pass full module names such as `mqt.qmap.sc`. The default
+output directory follows the MQT layout, e.g., `python/mqt/qmap`. Override it
+with `output_dir` if needed.
 
 ## Customizing a session
 
-Use `pytest_args` for fixed pytest flags or test paths, `install_args` for uv
+Use `pytest_args` for fixed `pytest` flags or test paths, `install_args` for uv
 options such as `--all-extras` or `--reinstall-package`, and `sphinx_args` for
 Sphinx options. Arguments after `--` are forwarded to the session's command.
 `python.tests` also accepts `extra_deps` for dependency overrides installed

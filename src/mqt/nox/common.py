@@ -38,9 +38,9 @@ def lint(session: nox.Session) -> None:
 
 
 def run_pytest(session: nox.Session, *, pytest_args: Sequence[str] = (), extra_deps: Sequence[str] = ()) -> None:
-    """Apply dependency overrides after synchronization, then run pytest directly.
+    """Apply dependency overrides after synchronization, then run ``pytest`` directly.
 
-    ``pytest_args`` contains pytest command-line arguments, including test paths. These precede session.posargs.
+    ``pytest_args`` contains ``pytest`` command-line arguments, including test paths. These precede session.posargs.
     """
     if extra_deps:
         # Sync can restore locked versions even when Nox runs with --no-install.

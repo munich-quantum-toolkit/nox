@@ -76,10 +76,10 @@ def tests(
     pytest_args: Sequence[str] = (),
     extra_deps: Sequence[str] = (),
 ) -> None:
-    """Install the test group and run pytest with optional dependency overrides.
+    """Install the test group and run ``pytest`` with optional dependency overrides.
 
     ``install_args`` go to uv sync. ``pytest_args`` precede session.posargs. ``extra_deps`` are installed after
-    synchronization, e.g. an upstream SDK. The test group must include pytest-cov for the shared coverage configuration.
+    synchronization, e.g., an upstream SDK. The test group must include ``pytest-cov`` for coverage.
     """
     install(session, build_isolation=build_isolation, package=package, groups=["test"], install_args=install_args)
     common.run_pytest(session, pytest_args=pytest_args, extra_deps=extra_deps)
@@ -165,8 +165,8 @@ def stubs(
 ) -> None:
     """Build a nanobind package without isolation, generate its stubs, and run the MQT stub hooks.
 
-    The ``build`` group must include nanobind. ``modules`` contains Python import names, e.g. ``mqt.qmap.sc``.
-    MQT distribution names such as ``mqt-qmap`` determine the default output directory, e.g. ``python/mqt/qmap``.
+    The ``build`` group must include nanobind. ``modules`` contains Python import names, e.g., ``mqt.qmap.sc``.
+    MQT distribution names such as ``mqt-qmap`` determine the default output directory, e.g., ``python/mqt/qmap``.
     Extra arguments go to nanobind.stubgen.
     """
     if not modules:
